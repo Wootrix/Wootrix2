@@ -1,96 +1,166 @@
-﻿@model IEnumerable<WootrixV2.Models.ArticleReporting>
-
+﻿@*@model IEnumerable<WootrixV2.Models.ArticleReporting>*@
+@model WootrixV2.Models.Reporting
 @using Microsoft.AspNetCore.Http;
 @using Microsoft.AspNetCore.Mvc.Localization
 @using Newtonsoft.Json;
-
+@using WootrixV2.Models
 @inject IViewLocalizer Localizer
-
 @{
     ViewData["Title"] = Localizer["Usage Reports"];
     Layout = "~/Views/Shared/_LayoutCompany.cshtml";
-
     var _companyName = Context.Session.GetString("CompanyName");
-
 }
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-@section Scripts {
-
-
-    @*https://www.pluralsight.com/guides/asp-net-mvc-populating-dropdown-lists-in-razor-views-using-the-mvvm-design-pattern-entity-framework-and-ajax*@
-    <script type="text/javascript">
-
-
-$("#Countries").change(function () {
-    var selectedCountry = $("#Countries").val();
-    var regionsSelect = $("#States");
-    regionsSelect.empty();
-    var citySelect = $("#Cities");
-    citySelect.empty();
-    if (selectedCountry != null && selectedCountry != "") {
-        $.getJSON('@Url.Action("GetStates")', { countryCode: selectedCountry }, function (states) {
-
-            if (states != null && !jQuery.isEmptyObject(states))
-            {
-                regionsSelect.append($('<option/>', {
-                    value: null,
-                    text: ""
-                }));
-                $.each(states, function (index, state) {
-
-                    regionsSelect.append($("<option />").val(this.value).text(this.text));
-                });
-            }
-        });
-    }
-});
-
-
-$("#States").change(function () {
-    var selectedState = $("#States").val();
-    var citySelect = $("#Cities");
-    citySelect.empty();
-    if (selectedState != null && selectedState != "") {
-        $.getJSON('@Url.Action("GetCities")', { stateCode: selectedState }, function (cities) {
-            if (cities != null && !jQuery.isEmptyObject(cities)) {
-                citySelect.append($("<option />", {
-                    value: null,
-                    text: ""
-                }));
-                $.each(cities, function (index, city) {
-                    citySelect.append($("<option />").val(this.value).text(this.text));
-                });
-            }
-        });
-    }
-});
-    </script>
-
-}
-
-
+<script type="text/javascript" src="//cdn.jsdelivr.net/jquery/1/jquery.min.js"></script>
+<script type="text/javascript" src="//cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+<link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/bootstrap/latest/css/bootstrap.css" />
+<script type="text/javascript" src="//cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.js"></script>
+<link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.css" />
 @*The graph library https://www.chartjs.org/*@
 @*<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.3/Chart.bundle.min.js"></script>*@
 <script src="~/js/chart.min.js" asp-append-version="true"></script>
-
 <script src="~/js/utils.js" asp-append-version="true"></script>
 
 <div class="articleBackButtonContainer">
-    <a asp-controller="Company" asp-action="Home" asp-route-id="@_companyName">
-        <button class="articleBackButton button glow"><span class="glyphicon glyphicon-menu-left"></span>&nbsp;@Localizer["Back to Admin Menu"]</button>
+    <a class="articleBackButton button glow" asp-controller="Company" asp-action="Home" asp-route-id="@_companyName">
+        <span class="glyphicon glyphicon-menu-left"></span>&nbsp;@Localizer["Back to Admin Menu"]
     </a>
 </div>
 
 <div class="bodyBox">
     <h2 style="color:@Context.Session.GetString("CompanyMainFontColor") !important">@Localizer["Usage Reports"]</h2>
-
-
     <div class="Article Filters">
         <h4>Filter Article View Types</h4>
     </div>
 
+    
 
+    <fieldset>
+        <div class="row">
+            <div class="col-md-8">
+                <form asp-controller="ArticleReporting" asp-action="Index" enctype="multipart/form-data">
+                    <div asp-validation-summary="All" class="text-danger"></div>
+                    <input type="date" id='from' name='FromDate' />
+                    <input type="date" id='to' name='ToDate' />
+                    <div class="row">
+                        <div class="col-md-6">
+                            @Html.LabelFor(x => Model.FilterDetaails.Topics, htmlAttributes: new { @class = "control-label" })
+                            <div class="form-group checkbox-box" id="SelectTopics">
+                                @foreach (var item in Model.FilterDetaails.AvailableTopics)
+                                {
+                                    <div class="checkbox">
+                                        <label><input type="checkbox" name="SelectedTopics" value="@item.Value">@item.Text</label>
+                                    </div>
+                                }
+                            </div>
 
+                            @Html.LabelFor(x => Model.FilterDetaails.TypeOfUser, htmlAttributes: new { @class = "control-label" })
+                            <div class="form-group checkbox-box" id="SelectTypeOfUser">
+                                @foreach (var item in Model.FilterDetaails.AvailableTypeOfUser)
+                                {
+                                    <div class="checkbox">
+                                        <label><input type="checkbox" name="SelectedTypeOfUser" value="@item.Value">@item.Text</label>
+                                    </div>
+                                }
+                            </div>
+
+                            @Html.LabelFor(x => Model.FilterDetaails.WebsiteLanguage, htmlAttributes: new { @class = "control-label" })
+                            <div class="form-group checkbox-box" id="SelectLanguages">
+                                @foreach (var item in Model.FilterDetaails.AvailableLanguages)
+                                {
+                                    <div class="checkbox">
+                                        <label><input type="checkbox" name="SelectedLanguages" value="@item.Value">@Localizer[item.Text]</label>
+                                    </div>
+                                }
+                            </div>
+
+                            <div class="form-group">
+                                @Html.LabelFor(x => Model.FilterDetaails.Country, htmlAttributes: new { @class = "control-label" })
+                                <select class="form-control" id="Countries" name="Country">
+                                    @foreach (var i in Model.FilterDetaails.Countries)
+                                    {
+                                        <option value="@i.Value">@Localizer[i.Text]</option>
+                                    }
+                                </select>
+                                @*@Html.DropDownListFor(x => Model.Country, new SelectList(Model.Countries, "Value", "Text"), htmlAttributes: new { @class = "form-control", id = "Countries" })*@
+                                @Html.ValidationMessageFor(x => x.FilterDetaails.Country, "", new { @class = "text-danger" })
+                            </div>
+
+                            <div class="form-group">
+                                @Html.LabelFor(x => Model.FilterDetaails.State, htmlAttributes: new { @class = "control-label" })
+                                <select class="form-control" id="States" name="State">
+                                    @foreach (var i in Model.FilterDetaails.States)
+                                    {
+                                        <option value="@i.Value">@Localizer[i.Text]</option>
+                                    }
+                                </select>
+                                @*@Html.DropDownListFor(x => Model.State, new SelectList(Model.States, "Value", "Text"), htmlAttributes: new { @class = "form-control", id = "States" })*@
+                                @Html.ValidationMessageFor(x => x.FilterDetaails.State, "", new { @class = "text-danger" })
+                            </div>
+
+                            <div class="form-group">
+                                @Html.LabelFor(x => Model.FilterDetaails.City, htmlAttributes: new { @class = "control-label" })
+                                <select class="form-control" id="Cities" name="City">
+                                    @foreach (var i in Model.FilterDetaails.Cities)
+                                    {
+                                        <option value="@i.Value">@Localizer[i.Text]</option>
+                                    }
+                                </select>
+                                @*@Html.DropDownListFor(x => Model.City, new SelectList(Model.Cities, "Value", "Text"), htmlAttributes: new { @class = "form-control", id = "Cities" })*@
+                                @Html.ValidationMessageFor(x => x.FilterDetaails.City, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            @Html.LabelFor(x => Model.FilterDetaails.Groups, htmlAttributes: new { @class = "control-label" })
+                            <div class="form-group checkbox-box" id="SelectGroups" name="SelectedGroups1">
+                                @foreach (var item in Model.FilterDetaails.AvailableGroups)
+                                {
+                                    <div class="checkbox">
+                                        <label><input type="checkbox" name="SelectedGroups" value="@item.Value">@item.Text</label>
+                                    </div>
+                                }
+                            </div>
+
+                            @Html.LabelFor(x => Model.FilterDetaails.Segments, htmlAttributes: new { @class = "control-label" })
+                            <div class="form-group checkbox-box" id="SelectSegments" name="SelectSegments" style="width: 570px; height: 200px; overflow-y: scroll;">
+                                @foreach (var item in Model.FilterDetaails.AvailableSegments)
+                                {
+                                    <div class="checkbox">
+                                        <label><input type="checkbox" name="SelectedSegments" value="@item.Value">@item.Text</label>
+                                    </div>
+                                }
+                            </div>
+
+                            @Html.LabelFor(x => Model.FilterDetaails.Articles, htmlAttributes: new { @class = "control-label" })
+                            <div class="form-group checkbox-box" id="SelectArticles" name="SelectArticles" style="width: 570px; height: 200px; overflow-y: scroll;">
+                                @foreach (var item in Model.FilterDetaails.AvailableArticles)
+                                {
+                                    <div class="checkbox">
+                                        <label><input type="checkbox" name="SelectedArticleName" value="@item.Value">@item.Text</label>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <button type="button" onclick="location.href='@Url.Action("Index", "ArticleReporting" )'" class="articleBackButton button glow">
+                            Clear Filter
+                        </button>
+                        <input type="submit" value='Filter' id="FilterData1" class="articleBackButton button glow" /></br>
+                        <div>
+
+                            <button type="button" onclick="location.href = '@Url.Action("ExportToCSV", "ArticleReporting")'" class="articleBackButton button glow">
+                                Export To CSV
+                            </button>
+                            <button type="button" onclick="location.href = '@Url.Action("ExportToExcel", "ArticleReporting")'" class="articleBackButton button glow">
+                                Export To Excel
+                            </button>
+                        </div>
+                        
+                    </div>
+                </form>
+            </div>
+        </div>
+    </fieldset>
     <div class="form-group">
         <label class="control-label">@Localizer["Segments"]</label>
         <select class="form-control" id="Segments" name="Segment">
@@ -100,107 +170,13 @@ $("#States").change(function () {
             }
         </select>
     </div>
-
     <div class="articleBackButtonContainer" id="UpdateGraphs">
         @*<a asp-controller="Company" asp-action="Home" asp-route-id="@_companyName">*@
         <button class="articleBackButton button glow">@Localizer["Update Graphs"]</button>
         @*</a>*@
     </div>
-
-
-
-
-    @*<div class="form-group">
-            <label class="control-label">@Localizer["Articles"]</label>
-            <select class="form-control" id="Articles" name="Article">
-                @foreach (var i in ViewBag.Articles)
-                {
-                    <option value="@i">@Localizer[i]</option>
-                }
-            </select>
-        </div>*@
-
-    @*<label class="control-label">Languages</label>
-        <div class="form-group checkbox-box">
-
-            @foreach (var item in ViewBag.Languages)
-            {
-                <div class="checkbox">
-                    <label><input type="checkbox" name="Languages" value="@item" /> @Localizer[item]</label>
-                </div>
-            }
-        </div>
-
-        <label class="control-label">Type Of User</label>
-        <div class="form-group checkbox-box">
-
-            @foreach (var item in ViewBag.TypeOfUser)
-            {
-                <div class="checkbox">
-                    <label><input type="checkbox" name="TypeOfUser" value="@item" /> @Localizer[item]</label>
-                </div>
-            }
-        </div>
-
-        <label class="control-label">Topics</label>
-        <div class="form-group checkbox-box">
-
-            @foreach (var item in ViewBag.Topics)
-            {
-                <div class="checkbox">
-                    <label><input type="checkbox" name="Topics" value="@item" /> @Localizer[item]</label>
-                </div>
-            }
-        </div>
-
-        <label class="control-label">Groups</label>
-        <div class="form-group checkbox-box">
-
-            @foreach (var item in ViewBag.Groups)
-            {
-                <div class="checkbox">
-                    <label><input type="checkbox" name="Groups" value="@item" /> @Localizer[item]</label>
-                </div>
-            }
-        </div>
-
-
-        <div class="form-group">
-            <label class="control-label">Countries</label>
-            <select class="form-control" id="Countries" name="Country">
-                @foreach (var i in ViewBag.Countries)
-                {
-                    <option value="@i">@Localizer[i]</option>
-                }
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label class="control-label">States</label>
-            <select class="form-control" id="States" name="State">
-                @foreach (var i in ViewBag.States)
-                {
-                    <option value="@i">@Localizer[i]</option>
-                }
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label class="control-label">Cities</label>
-            <select class="form-control" id="Cities" name="City">
-                @foreach (var i in ViewBag.Cities)
-                {
-                    <option value="@i">@Localizer[i]</option>
-                }
-            </select>
-        </div>*@
-
-
-
-
     <div class="GraphBox">
         <div class="GraphRow">
-
             <div class="GraphContainer" id="OSchartcanvas-holder">
                 <canvas id="OSchart-area"></canvas>
             </div>
@@ -213,333 +189,712 @@ $("#States").change(function () {
             <div class="GraphContainer" id="Articlechartcanvas-holder" style="width:45%">
                 <canvas id="Articlechart-area"></canvas>
             </div>
-
         </div>
     </div>
 
     <script>
 
-        function getRandomColor() {
-            var letters = '0123456789ABCDEF'.split('');
-            var color = '#';
-            for (var i = 0; i < 6; i++) {
-                color += letters[Math.floor(Math.random() * 16)];
-            }
-            return color;
+    $(function () {
+        $.validator.methods.date = function (value, element) {
+            return this.optional(element) || moment(value, "MM/DD/YYYY", true).isValid();
         }
-
-        var myOSTypesArray = [];
-        var myOSTypeCountArray = [];
-        var myOSTypeColorArray = [];
-
-        var myPlatformTypes = [];
-        var myPlatformTypesCountArray = [];
-        var myPlatformTypesColorArray = [];
-
-        var myLocations = [];
-        var myLocationsCountArray = [];
-        var myLocationsColorArray = [];
-
-        var myArticleViews = [];
-        var myArticleViewsCountArray = [];
-        var myArticleViewsColorArray = [];
-
-        var config = {
-            type: 'pie',
-            data: {
-                datasets: [{
-                    data: myOSTypeCountArray,
-                    backgroundColor: myOSTypeColorArray,
-                    label: 'OS Types'
-                }],
-                labels: myOSTypesArray
-            },
-            options: {
-                responsive: true,
-                legend: {
-                    position: 'top',
-                },
-                title: {
-                    display: true,
-                    text: 'OS Types'
-                }
-            }
-        };
-
-        var config2 = {
-            type: 'pie',
-            data: {
-                datasets: [{
-                    data: myPlatformTypesCountArray,
-                    backgroundColor: myPlatformTypesColorArray,
-                    label: 'Platform Types'
-                }],
-                labels: myPlatformTypes
-            },
-            options: {
-                responsive: true,
-                legend: {
-                    position: 'top',
-                },
-                title: {
-                    display: true,
-                    text: 'Platform Types'
-                }
-            }
-        };
-
-        var config3 = {
-            type: "bar",
-            data: {
-                labels: myLocations,
-                datasets: [
-                    {
-                        label: "Location Views",
-                        data: myLocationsCountArray,
-                        fill: false,
-                        backgroundColor: myLocationsColorArray,
-                        borderColor: myLocationsColorArray,
-                        borderWidth: 1
-                    }]
-            },
-            options: {
-                scales: {
-                    yAxes: [
-                        { ticks: { beginAtZero: true } }]
-                },
-                responsive: true,
-                legend: {
-                    position: 'top',
-                },
-                title: {
-                    display: true,
-                    text: 'Article Views by Location'
-                }
-            }
-        };
-
-        var config4 = {
-            type: "horizontalBar",
-            data: {
-                labels: myArticleViews,
-                datasets: [
-                    {
-                        label: "Article Views",
-                        data: myArticleViewsCountArray,
-                        fill: false,
-                        backgroundColor: myArticleViewsColorArray,
-                        borderColor: myArticleViewsColorArray,
-                        borderWidth: 1
-                    }]
-            },
-            options: {
-                scales: {
-                    yAxes: [
-                        { ticks: { beginAtZero: true } }]
-                },
-                responsive: true,
-                legend: {
-                    position: 'top',
-                },
-                title: {
-                    display: true,
-                    text: 'Article Views'
-                }
-            }
-        };
-
-        function UpdateGraphs() {
-
-            UpdateOSTypesGraph();
-            UpdatePlatformGraph();
-            UpdateLocationsGraph();
-            UpdateArticleGraph();
-            window.myPie4.update({
-                duration: 800,
-                easing: 'easeOutBounce'
-            });
-            console.log("Graphs Updated");
-           
-        }
-
-
-        function UpdateOSTypesGraph() {
-
-            
-
-            @for (int i = 0; i < ViewBag.osTypes.Length; i++)
-            {
-                @:myOSTypesArray.push("@ViewBag.osTypes[i]");
-                @:myOSTypeCountArray.push("@ViewBag.osTypeCountArray[i]");
-                @:myOSTypeColorArray.push("@ViewBag.osTypeColorArray[i]");
-            }
-
-            
-            var ctx = document.getElementById('OSchart-area').getContext('2d');
-            window.myPie1 = new Chart(ctx, config);
-        }
-
-        function UpdatePlatformGraph() {
-
-           
-
-            @for (int i = 0; i < ViewBag.platformTypes.Length; i++)
-            {
-                @:myPlatformTypes.push("@ViewBag.platformTypes[i]");
-                @:myPlatformTypesCountArray.push("@ViewBag.platformTypesCountArray[i]");
-                @:myPlatformTypesColorArray.push("@ViewBag.platformTypesColorArray[i]");
-            }
-
-            
-            var ctx2 = document.getElementById('Platformchart-area').getContext('2d');
-            window.myPie2 = new Chart(ctx2, config2);
-        }
-
-        function UpdateLocationsGraph() {
-            
-            @for (int i = 0; i < ViewBag.locations.Length; i++)
-            {
-                //if (@ViewBag.locations[i] != "No Location Data") {
-                @:myLocations.push("@ViewBag.locations[i]");
-                @:myLocationsCountArray.push("@ViewBag.locationsCountArray[i]");
-                @:myLocationsColorArray.push("@ViewBag.locationsColorArray[i]");
-                //}
-            }
-                        
-            var ctx3 = document.getElementById('Locationschart-area').getContext('2d');
-            window.myPie3 = new Chart(ctx3, config3);
-        }
-
-
-        function UpdateArticleGraph() {                       
-
-            @for (int i = 0; i < ViewBag.articles.Length; i++)
-            {
-                @:myArticleViews.push("@ViewBag.articles[i]");
-                @:myArticleViewsCountArray.push("@ViewBag.articlesCountArray[i]");
-                @:myArticleViewsColorArray.push("@ViewBag.articlesColorArray[i]");
-            }
-
-            var ctx4 = document.getElementById('Articlechart-area').getContext('2d');
-            window.myPie4 = new Chart(ctx4, config4);
-        }
-
-
-        window.onload = function () {
-            UpdateGraphs();
-        };
-
-        $(document).ready(function () {
-
-
-            $('#UpdateGraphs').click(function () {
-                console.log('Updating Graphs');
-
-                var selectedMagazine = $("#Segments").val();
-                console.log("Filtering on:" + selectedMagazine);
-
-                dataToPass = {
-                    "magazine": selectedMagazine
-                };
-
-                //So we need to
-                $.ajax({
-                    type: "POST",
-                    url: "@Url.Action("UpdateGraphs", "ArticleReporting")",
-                    //contentType: 'application/json; charset=UTF-8',
-
-                    dataType: "json",
-                    data: dataToPass,//, articles: articles, groups: groups, locations: locations, disciplines: disciplines, branches: branches },
-                    success: function (response) {
-
-                        //var objData = jQuery.parseJSON(response);
-                        console.log("objData:" + response);
-                        config4.data.datasets[0] = response;
-                        window.myPie4.update({
-                            duration: 800,
-                            easing: 'easeOutBounce'
-                        });
-                       //UpdateGraphs();
-                    },
-                    error: function (response) {
-                        console.log("err:" + response);
-                    }
-                });
-        });
-
-
-
     });
 
+    function getRandomColor() {
+        var letters = '0123456789ABCDEF'.split('');
+        var color = '#';
+        for (var i = 0; i < 6; i++) {
+            color += letters[Math.floor(Math.random() * 16)];
+        }
+        return color;
+    }
+
+    var myOSTypesArray = [];
+    var myOSTypeCountArray = [];
+    var myOSTypeColorArray = [];
+
+    var myPlatformTypes = [];
+    var myPlatformTypesCountArray = [];
+    var myPlatformTypesColorArray = [];
+
+    var myLocations = [];
+    var myLocationsCountArray = [];
+    var myLocationsColorArray = [];
+
+    var myArticleViews = [];
+    var myArticleViewsCountArray = [];
+    var myArticleViewsColorArray = [];
+
+    var config = {
+        type: 'pie',
+        data: {
+            datasets: [{
+                data: myOSTypeCountArray,
+                backgroundColor: myOSTypeColorArray,
+                label: 'OS Types'
+            }],
+            labels: myOSTypesArray
+        },
+        options: {
+            responsive: true,
+            legend: {
+                position: 'top',
+            },
+            title: {
+                display: true,
+                text: 'OS Types'
+            }
+        }
+    };
+
+    var config2 = {
+        type: 'pie',
+        data: {
+            datasets: [{
+                data: myPlatformTypesCountArray,
+                backgroundColor: myPlatformTypesColorArray,
+                label: 'Platform Types'
+            }],
+            labels: myPlatformTypes
+        },
+        options: {
+            responsive: true,
+            legend: {
+                position: 'top',
+            },
+            title: {
+                display: true,
+                text: 'Platform Types'
+            }
+        }
+    };
+
+    var config3 = {
+        type: "bar",
+        data: {
+            labels: myLocations,
+            datasets: [
+                {
+                    label: "Location Views",
+                    data: myLocationsCountArray,
+                    fill: false,
+                    backgroundColor: myLocationsColorArray,
+                    borderColor: myLocationsColorArray,
+                    borderWidth: 1
+                }]
+        },
+        options: {
+            scales: {
+                yAxes: [
+                    { ticks: { beginAtZero: true } }]
+            },
+            responsive: true,
+            legend: {
+                position: 'top',
+            },
+            title: {
+                display: true,
+                text: 'Article Views by Location'
+            }
+        }
+    };
+
+    var config4 = {
+        type: "horizontalBar",
+        data: {
+            labels: myArticleViews,
+            datasets: [
+                {
+                    label: "Article Views",
+                    data: myArticleViewsCountArray,
+                    fill: false,
+                    backgroundColor: myArticleViewsColorArray,
+                    borderColor: myArticleViewsColorArray,
+                    borderWidth: 1
+                }]
+        },
+        options: {
+            scales: {
+                yAxes: [
+                    { ticks: { beginAtZero: true } }]
+            },
+            responsive: true,
+            legend: {
+                position: 'top',
+            },
+            title: {
+                display: true,
+                text: 'Article Views'
+            }
+        }
+    };
+
+    function UpdateGraphs() {
+
+        UpdateOSTypesGraph();
+        UpdatePlatformGraph();
+        UpdateLocationsGraph();
+        UpdateArticleGraph();
+        window.myPie4.update({
+            duration: 800,
+            easing: 'easeOutBounce'
+        });
+        console.log("Graphs Updated");
+
+    }
+
+
+    function UpdateOSTypesGraph() {
+        @for (int i = 0; i < ViewBag.osTypes.Length; i++)
+        {
+            @:myOSTypesArray.push("@ViewBag.osTypes[i]");
+            @:myOSTypeCountArray.push("@ViewBag.osTypeCountArray[i]");
+            @:myOSTypeColorArray.push("@ViewBag.osTypeColorArray[i]");
+        }
+        var ctx = document.getElementById('OSchart-area').getContext('2d');
+        window.myPie1 = new Chart(ctx, config);
+    }
+
+    function UpdatePlatformGraph() {
+        @for (int i = 0; i < ViewBag.platformTypes.Length; i++)
+        {
+            @:myPlatformTypes.push("@ViewBag.platformTypes[i]");
+            @:myPlatformTypesCountArray.push("@ViewBag.platformTypesCountArray[i]");
+            @:myPlatformTypesColorArray.push("@ViewBag.platformTypesColorArray[i]");
+        }
+        var ctx2 = document.getElementById('Platformchart-area').getContext('2d');
+        window.myPie2 = new Chart(ctx2, config2);
+    }
+
+    function UpdateLocationsGraph() {
+        @for (int i = 0; i < ViewBag.locations.Length; i++)
+        {
+            //if (@ViewBag.locations[i] != "No Location Data") {
+            @:myLocations.push("@ViewBag.locations[i]");
+            @:myLocationsCountArray.push("@ViewBag.locationsCountArray[i]");
+            @:myLocationsColorArray.push("@ViewBag.locationsColorArray[i]");
+            //}
+        }
+        var ctx3 = document.getElementById('Locationschart-area').getContext('2d');
+        window.myPie3 = new Chart(ctx3, config3);
+    }
+    function UpdateArticleGraph() {
+        @for (int i = 0; i < ViewBag.articles.Length; i++)
+        {
+            @:myArticleViews.push("@ViewBag.articles[i]");
+            @:myArticleViewsCountArray.push("@ViewBag.articlesCountArray[i]");
+            @:myArticleViewsColorArray.push("@ViewBag.articlesColorArray[i]");
+        }
+
+        var ctx4 = document.getElementById('Articlechart-area').getContext('2d');
+        window.myPie4 = new Chart(ctx4, config4);
+    }
+
+    window.onload = function () {
+        UpdateGraphs();
+    };
+
+    $(document).ready(function () {
+        $('#UpdateGraphs').click(function () {
+            console.log('Updating Graphs');
+            var selectedMagazine = $("#Segments").val();
+            console.log("Filtering on:" + selectedMagazine);
+
+            dataToPass = {
+                "magazine": selectedMagazine
+            };
+
+            //So we need to
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("UpdateGraphs", "ArticleReporting")",
+                //contentType: 'application/json; charset=UTF-8',
+
+                dataType: "json",
+                data: dataToPass,//, articles: articles, groups: groups, locations: locations, disciplines: disciplines, branches: branches },
+                success: function (response) {
+                    debugger;
+                    //var objData = jQuery.parseJSON(response);
+                    console.log("objData:" + response);
+                    config4.data.datasets[0] = response;
+                    UpdateGraphs();
+                },
+                error: function (response) {
+                    console.log("err:" + response);
+                }
+            });
+        });
+    });
     </script>
 
-    <table class="table">
-        <thead>
-            <tr>
-                <th>
-                    @Html.DisplayNameFor(model => model.UserName)
-                </th>
-                <th>
-                    @Html.DisplayNameFor(model => model.SegmentName)
-                </th>
-                <th>
-                    @Html.DisplayNameFor(model => model.ArticleName)
-                </th>
-                <th>
-                    @Html.DisplayNameFor(model => model.DeviceType)
-                </th>
-                <th>
-                    @Html.DisplayNameFor(model => model.OSType)
-                </th>
-                <th>
-                    @Html.DisplayNameFor(model => model.ArticleReadTime)
-                </th>
-                <th>
-                    @Html.DisplayNameFor(model => model.Country)
-                </th>
-                <th>
-                    @Html.DisplayNameFor(model => model.State)
-                </th>
-                <th>
-                    @Html.DisplayNameFor(model => model.City)
-                </th>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            var SelectedGroups = [];
+            var SelectedSegments = [];
+            var SelectedArticles = [];
+            var SelectedTopics = [];
+            var SelectedLanguages = [];
+            var SelectedTypeOfUser = [];
 
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var item in Model)
-            {
+            $('#FilterData').click(function () {
+                var FromDate = $("#from").val();
+                var ToDate = $("#to").val();
+                var InterfaceLanguage = $("#InterfaceLanguages").val();
+
+                $('#SelectGroups :checked').each(function () {
+                    SelectedGroups.push($(this).val());
+                });
+
+                $('#SelectSegments :checked').each(function () {
+                    SelectedSegments.push($(this).val());
+                });
+
+                $('#SelectArticles :checked').each(function () {
+                    SelectedArticles.push($(this).val());
+                });
+
+                $('#SelectTopics :checked').each(function () {
+                    SelectedTopics.push($(this).val());
+                });
+
+                $('#SelectTypeOfUser :checked').each(function () {
+                    SelectedTypeOfUser.push($(this).val());
+                });
+
+                $('#SelectLanguages :checked').each(function () {
+                    SelectedLanguages.push($(this).val());
+                });
+
+                var Country = $("#Countries").val();
+                var State = $("#States").val();
+                var City = $("#Cities").val();
+
+                dataToPass = {};
+                dataToPass.FromDate = FromDate;
+                dataToPass.ToDate = ToDate;
+                dataToPass.InterfaceLanguage = InterfaceLanguage;
+                dataToPass.SelectedGroups = SelectedGroups;
+                dataToPass.SelectedTopics = SelectedTopics;
+                dataToPass.SelectedTypeOfUser = SelectedTypeOfUser;
+                dataToPass.SelectedLanguages = SelectedLanguages;
+                dataToPass.Country = Country;
+                dataToPass.State = State;
+                dataToPass.City = City;
+                dataToPass.SelectedSegments = SelectedSegments;
+                dataToPass.SelectedArticles = SelectedArticles;
+
+                $.ajax({
+                    url: "/ArticleReporting/Index",
+                    type: "POST",
+                    data: { data: dataToPass },
+                    success: function (data) {
+                        console.log(data)
+                    },
+                    error: function () {
+
+                    }
+                });
+
+            });
+
+            $("#Countries").change(function () {
+                var selectedCountry = $("#Countries").val();
+                var regionsSelect = $("#States");
+                regionsSelect.empty();
+                var citySelect = $("#Cities");
+                citySelect.empty();
+                if (selectedCountry != null && selectedCountry != "") {
+                    $.getJSON('@Url.Action("GetStates" ,"Users")', { countryCode: selectedCountry }, function (states) {
+
+                        if (states != null && !jQuery.isEmptyObject(states))
+                        {
+                            regionsSelect.append($('<option/>', {
+                                value: null,
+                                text: ""
+                            }));
+                            $.each(states, function (index, state) {
+
+                                regionsSelect.append($("<option />").val(this.value).text(this.text));
+                            });
+                        }
+                    });
+                }
+            });
+
+            $("#States").change(function () {
+                var selectedState = $("#States").val();
+                var citySelect = $("#Cities");
+                citySelect.empty();
+                if (selectedState != null && selectedState != "") {
+                    $.getJSON('@Url.Action("GetCities","Users")', { stateCode: selectedState }, function (cities) {
+                        if (cities != null && !jQuery.isEmptyObject(cities)) {
+                            citySelect.append($("<option />", {
+                                value: null,
+                                text: ""
+                            }));
+                            $.each(cities, function (index, city) {
+                                citySelect.append($("<option />").val(this.value).text(this.text));
+                            });
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+
+    <div class="col-md-6">
+        <div class="table-wrapper-scroll-y my-custom-scrollbar">
+            <table class="table table-fixed" id="tblmagizine">
+                <thead>
+                    <tr>
+                        <th>
+                            @Html.DisplayNameFor(model => model.Reports.FirstOrDefault().SegmentName)
+                        </th>
+                        <th>
+                            PageView
+                        </th>
+
+                    </tr>
+                </thead>
+
+                <tbody style="width: 80%; height: 200px; overflow-y:auto;">
+                    @foreach (var item in ViewBag.Magazine)
+                    {
+                        <tr>
+                            <td>
+                                @item.SegmentName
+                            </td>
+
+                            <td>
+                                @item.Previews
+                            </td>
+                            <td>@item.percentageMagazine %</td>
+                        </tr>
+                    }
+
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <table class="table">
+            <thead>
                 <tr>
-                    <td>
-                        @Html.DisplayFor(modelItem => item.UserName)
-                    </td>
-                    <td>
-                        @Html.DisplayFor(modelItem => item.SegmentName)
-                    </td>
-                    <td>
-                        @Html.DisplayFor(modelItem => item.ArticleName)
-                    </td>
-                    <td>
-                        @Html.DisplayFor(modelItem => item.DeviceType)
-                    </td>
-                    <td>
-                        @Html.DisplayFor(modelItem => item.OSType)
-                    </td>
-                    <td>
-                        @Html.DisplayFor(modelItem => item.ArticleReadTime)
-                    </td>
-                    <td>
-                        @Html.DisplayFor(modelItem => item.Country)
-                    </td>
-                    <td>
-                        @Html.DisplayFor(modelItem => item.State)
-                    </td>
-                    <td>
-                        @Html.DisplayFor(modelItem => item.City)
-                    </td>
+                    <th>
+                        @Html.DisplayNameFor(model => model.Reports.FirstOrDefault().ArticleName)
+                    </th>
+                    <th>
+                        PageView
+                    </th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @foreach (var item in ViewBag.Article)
+                {
+                    <tr>
+                        <td>
+                            @item.ArticleName
+                        </td>
+
+                        <td>
+                            @item.Previews
+                        </td>
+                        <td>@item.percentageArticle %</td>
+                    </tr>
+                }
+
+            </tbody>
+        </table>
+    </div>
+    <div class="col-md-6">
+        <table class="table" style="width: 80%; height: 50%; overflow-y:auto;">
+            <thead>
+                <tr>
+                    <th>
+                        @Html.DisplayNameFor(Model => Model.Reports.FirstOrDefault().City)
+                    </th>
+                    <th>
+                        Pageview
+                    </th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                @foreach (var item in ViewBag.city)
+
+                {
+                    <tr>
+                        <td>
+                            @item.Citys
+                        </td>
+                        <td>
+                            @item.Previews
+                        </td>
+                        <td>@item.percentageCity %</td>
+                    </tr>
+                }
+
+
+            </tbody>
+        </table>
+    </div>
+    <div class="col-md-6">
+        <table class="table" style="width: 80%; height: 50%; overflow-y: scroll;overflow-x: scroll;">
+            <thead>
+                <tr>
+                    <th>
+                        @Html.DisplayNameFor(Model => Model.Reports.FirstOrDefault().Country)
+                    </th>
+                    <th>
+                        PageView
+                    </th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @foreach (var item in ViewBag.country)
+                {
+                    <tr>
+                        <td>
+                            @item.Country
+                        </td>
+                        <td>
+                            @item.Previews
+                        </td>
+                        <td>@item.percentageCountry %</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="col-md-6">
+        <table class="table" style="width: 80%; height: 50%; overflow-y: scroll;overflow-x: scroll;">
+            <thead>
+                <tr>
+                    <th>
+                        @Html.DisplayNameFor(Model => Model.Reports.FirstOrDefault().State)
+                    </th>
+                    <th>
+                        PageView
+                    </th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @foreach (var item in ViewBag.States)
+                {
+                    <tr>
+                        <td>
+                            @item.State
+                        </td>
+                        <td>
+                            @item.Previews
+                        </td>
+                        <td>@item.percentageState %</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="col-md-6">
+        <table class="table" style="width: 80%; height: 50%; overflow-y: scroll;overflow-x: scroll;">
+            <thead>
+                <tr>
+                    <th>
+                        @Html.LabelFor(x => Model.FilterDetaails.TypeOfUser, htmlAttributes: new { @class = "control-label" })
+                    </th>
+                    <th>
+                        PageView
+                    </th>
+                </tr>
+            </thead>
+
+            <tbody style="width: 80%; height: 200px; overflow-y:auto;">
+                @foreach (var item in ViewBag.User)
+                {
+                    <tr>
+                        <td>
+
+                            @item.UserName
+                        </td>
+
+                        <td>
+                            @item.Previews
+                        </td>
+                        <td>@item.percentageUser %</td>
+                    </tr>
+                }
+
+            </tbody>
+        </table>
+    </div>
+    <div class="col-md-6">
+        <table class="table" style="width: 80%; height: 50%; overflow-y: scroll;overflow-x: scroll;">
+            <thead>
+                <tr>
+                    <th>
+                        @Html.LabelFor(x => Model.FilterDetaails.Groups, htmlAttributes: new { @class = "control-label" })
+                    </th>
+                    <th>
+                        PageView
+                    </th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                @foreach (var item in ViewBag.Groups)
+
+                {
+                    <tr>
+                        <td>
+                            @item.GroupName
+
+                        </td>
+                        <td>
+                            @item.Previews
+                        </td>
+                        <td>@item.percentageGroup %</td>
+                    </tr>
+                }
+
+            </tbody>
+        </table>
+    </div>
+    <div class="col-md-6">
+        <table class="table" style="width: 80%; height: 50%; overflow-y: scroll;overflow-x: scroll;">
+            <thead>
+                <tr>
+                    <th>
+
+                        @Html.LabelFor(x => Model.FilterDetaails.Topics, htmlAttributes: new { @class = "control-label" })
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+
+                @foreach (var item in ViewBag.Topics)
+
+                {
+                    <tr>
+                        <td>
+                            @item.TopiceName
+                        </td>
+                        <td>
+                            @item.Previews
+                        </td>
+                        <td>@item.percentageTopic %</td>
+                    </tr>
+                }
+
+
+            </tbody>
+
+        </table>
+    </div>
+    <div class="col-md-6">
+        <table class="table" style="width: 80%; height: 50%; overflow-y: scroll;overflow-x: scroll;">
+            <thead>
+                <tr>
+                    <th>
+                        @Html.LabelFor(x => Model.FilterDetaails.WebsiteLanguage, htmlAttributes: new { @class = "control-label" })
+                    </th>
+                    <th>
+                        Pageview
+                    </th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                @foreach (var item in ViewBag.Languages)
+
+                {
+                    <tr>
+                        <td>
+                            @item.LanguageName
+
+                        </td>
+                        <td>
+                            @item.Previews
+                        </td>
+                        <td>@item.percentageLanguage %</td>
+                    </tr>
+                }
+
+
+            </tbody>
+        </table>
+    </div>
+    @*<table class="table">
+            <thead>
+                <tr>
+                    <th>
+                        @Html.DisplayNameFor(model => model.Reports.FirstOrDefault().UserName)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model.Reports.FirstOrDefault().SegmentName)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model.Reports.FirstOrDefault().ArticleName)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model.Reports.FirstOrDefault().DeviceType)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model.Reports.FirstOrDefault().OSType)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model.Reports.FirstOrDefault().ArticleReadTime)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model.Reports.FirstOrDefault().Country)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model.Reports.FirstOrDefault().State)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model.Reports.FirstOrDefault().City)
+                    </th>
 
                 </tr>
-            }
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.Reports)
+                {
+                    <tr>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.UserName)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.SegmentName)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.ArticleName)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.DeviceType)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.OSType)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.ArticleReadTime)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.Country)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.State)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.City)
+                        </td>
+
+                    </tr>
+                }
+            </tbody>
+        </table>*@
 </div>

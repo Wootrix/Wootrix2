@@ -31,11 +31,6 @@ namespace WootrixV2.Data
             _context = context;
         }
 
-       
-
-        
-
-
         public async Task UploadFileToS3(IFormFile file, string fileName, string fileFolder)
         {
             try
@@ -315,24 +310,42 @@ namespace WootrixV2.Data
 
         public List<SelectListItem> GetArticleSegments(int companyID)
         {
-            List<SelectListItem> deps = _context.CompanySegment.AsNoTracking()
+            List<SelectListItem> deps = _context.ArticleReporting.AsNoTracking()
             .Where(n => n.CompanyID == companyID)
-                .OrderBy(n => n.Title)
+                .OrderBy(n => n.SegmentName)
                     .Select(n =>
                     new SelectListItem
                     {
                         //Value = n.ID.ToString(),
-                        Value = n.Title,
-                        Text = n.Title
-                    }).ToList();
+                        Value = n.SegmentName,
+                        Text = n.SegmentName
+                    }).Distinct().ToList();
 
             return deps;
 
         }
 
+        public List<SelectListItem> GetArticleNames(int companyID)
+        {
+            List<SelectListItem> deps = _context.ArticleReporting.AsNoTracking()
+                .Where(n => n.CompanyID == companyID)
+                .OrderBy(n => n.ID)
+                .Select(n =>
+                    new SelectListItem
+                    {
+                        //Value = n.ID.ToString(),
+                        Value = n.ArticleName,
+                        Text = n.ArticleName
+                    }).Distinct().ToList();
+
+            return deps;
+
+        }
+
+
         public List<SelectListItem> GetArticleSegments(int companyID, string departmentID)
         {
-            List<SelectListItem> deps = _context.CompanySegment.AsNoTracking()
+            List<SelectListItem> deps = _context.CompanySegment.AsNoTracking().Distinct()
             .Where(n => n.CompanyID == companyID && n.Department == departmentID)
                 .OrderBy(n => n.Title)
                     .Select(n =>
@@ -347,6 +360,7 @@ namespace WootrixV2.Data
 
         }
 
+        
 
         public List<WootrixV2.Models.SegmentArticle> GetArticlesList(int companyID)
         {
